@@ -1,0 +1,21 @@
+# 不应出现的的大文件 / 隐私内容
+*.gguf
+*.safetensors
+*.ckpt
+*.pt
+*.pth
+*.bin
+
+# 运行产物与个人素材
+input/
+output/
+user/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+
+# 系统文件
+Thumbs.db
+.DS_Store

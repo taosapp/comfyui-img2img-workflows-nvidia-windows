@@ -1,0 +1,426 @@
+{
+  "last_node_id": 10,
+  "last_link_id": 9,
+  "nodes": [
+    {
+      "id": 10,
+      "type": "MarkdownNote",
+      "pos": [
+        -470,
+        0
+      ],
+      "size": [
+        400,
+        460
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "## 抠图去背景（BiRefNet）\n\n**纯分割模型，不生成新像素**：只算前景遮罩，人物/商品/文字不会被重绘、不会改脸。\n\n### 用法\n1. `LoadImage` 换成你的图（也可直接拖图到节点上）→ `Queue`\n2. 结果：`output/抠图/透明底_00001_.png` —— 带 alpha 通道的透明底 PNG\n3. 画布里的 `PreviewImage` 会把透明区渲染成深色/棋盘格，属正常；要看真实效果请用 PS、看图软件或浏览器打开\n\n### 产出两样东西\n- **透明底 PNG**：直接拿去合成、做电商主图、贴到别的背景上\n- **遮罩（mask）**：`MaskPreview` 可看，纯黑白，白=前景\n\n### 调参\n| 症状 | 怎么调 |\n| --- | --- |\n| 边缘有白边/毛边 | `GrowMask` 的 expand 改 **1~3**（外扩，吃掉白边） |\n| 边缘多切进来一点背景 | expand 改 **-1~-3**（收边） |\n| 想换底色 | 在 `JoinImageWithAlpha` 后面接 `EmptyImage`（填颜色）+ `ImageCompositeMasked` |\n\n### 说明\n- 模型：`models/background_removal/birefnet.safetensors`（423MB，MIT 许可，可商用）\n- 来源：[Comfy-Org/BiRefNet](https://huggingface.co/Comfy-Org/BiRefNet)（基于 [ZhengPeng7/BiRefNet](https://huggingface.co/ZhengPeng7/BiRefNet)）\n- 模型目录必须放在 `models/background_removal/`，**不是** checkpoints\n- 输入图会先缩到 1024×1024 推理，遮罩再插值回原图尺寸，所以**输出尺寸 = 输入尺寸**\n- 一次处理一张；多张图就逐张换图 Queue（贴纸/发丝类细节表现好）\n\n### 别删 InvertMask\n`JoinImageWithAlpha` 内部会做 `alpha = 1 - mask`（`comfy_extras/nodes_compositing.py:207`），\n而 BiRefNet 输出的是「1=前景」，所以这里必须先反相一次，否则抠出来是**反的**（主体透明、背景留下）。"
+      ]
+    },
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "pos": [
+        0,
+        0
+      ],
+      "size": [
+        315,
+        314
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            1,
+            9
+          ],
+          "slot_index": 0
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "4.png",
+        "image"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "LoadBackgroundRemovalModel",
+      "title": "抠图模型（BiRefNet）",
+      "pos": [
+        380,
+        440
+      ],
+      "size": [
+        320,
+        58
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "outputs": [
+        {
+          "name": "bg_model",
+          "type": "BACKGROUND_REMOVAL",
+          "links": [
+            2
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadBackgroundRemovalModel",
+        "models": [
+          {
+            "name": "birefnet.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/BiRefNet/resolve/main/background_removal/birefnet.safetensors",
+            "directory": "background_removal"
+          }
+        ]
+      },
+      "widgets_values": [
+        "birefnet.safetensors"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "RemoveBackground",
+      "title": "① 生成前景遮罩",
+      "pos": [
+        380,
+        120
+      ],
+      "size": [
+        320,
+        90
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 1
+        },
+        {
+          "name": "bg_removal_model",
+          "type": "BACKGROUND_REMOVAL",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": [
+            3,
+            6
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "RemoveBackground"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 4,
+      "type": "GrowMask",
+      "title": "② 边缘外扩（默认 0，去白边改 1~3）",
+      "pos": [
+        780,
+        120
+      ],
+      "size": [
+        330,
+        82
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            4
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "GrowMask"
+      },
+      "widgets_values": [
+        0,
+        true
+      ]
+    },
+    {
+      "id": 5,
+      "type": "InvertMask",
+      "title": "③ 反相（Join 内部会再取反，勿删）",
+      "pos": [
+        780,
+        260
+      ],
+      "size": [
+        330,
+        58
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": [
+            5
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "InvertMask"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 6,
+      "type": "JoinImageWithAlpha",
+      "title": "④ 合成透明底（RGBA）",
+      "pos": [
+        780,
+        380
+      ],
+      "size": [
+        330,
+        82
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 9
+        },
+        {
+          "name": "alpha",
+          "type": "MASK",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            7,
+            8
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "JoinImageWithAlpha"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 7,
+      "type": "SaveImage",
+      "title": "保存透明 PNG",
+      "pos": [
+        1180,
+        0
+      ],
+      "size": [
+        315,
+        270
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 7
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "抠图/透明底"
+      ]
+    },
+    {
+      "id": 8,
+      "type": "MaskPreview",
+      "title": "遮罩预览（白=前景）",
+      "pos": [
+        1180,
+        320
+      ],
+      "size": [
+        315,
+        180
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 6
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MaskPreview"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 9,
+      "type": "PreviewImage",
+      "pos": [
+        1180,
+        550
+      ],
+      "size": [
+        315,
+        270
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 8
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "PreviewImage"
+      },
+      "widgets_values": []
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ],
+    [
+      2,
+      2,
+      0,
+      3,
+      1,
+      "BACKGROUND_REMOVAL"
+    ],
+    [
+      3,
+      3,
+      0,
+      4,
+      0,
+      "MASK"
+    ],
+    [
+      4,
+      4,
+      0,
+      5,
+      0,
+      "MASK"
+    ],
+    [
+      5,
+      5,
+      0,
+      6,
+      1,
+      "MASK"
+    ],
+    [
+      6,
+      3,
+      0,
+      8,
+      0,
+      "MASK"
+    ],
+    [
+      7,
+      6,
+      0,
+      7,
+      0,
+      "IMAGE"
+    ],
+    [
+      8,
+      6,
+      0,
+      9,
+      0,
+      "IMAGE"
+    ],
+    [
+      9,
+      1,
+      0,
+      6,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

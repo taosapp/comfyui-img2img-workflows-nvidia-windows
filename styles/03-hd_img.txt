@@ -1,0 +1,12 @@
+masterpiece, best quality, ultra-detailed, 8k resolution, high definition, sharp focus, clear details, photorealistic, raw photo, DSLR, high resolution, crisp.
+
+Enhance this photograph to high definition: sharpen focus, recover fine details and textures, remove noise and compression artifacts. Keep the original scene, people, faces, composition and colors exactly the same.
+
+# ===== 以下是「备用词条」：行首带 # 的行会被节点自动剔除，不会送进模型 =====
+# 启用某行 → 删掉行首的 #；临时停用某段词 → 单独放一行、行首加 # 即可。
+# 只有行首（前面可留空格）的 # 或 // 才是注释；行中间的 # 会被保留，
+# 这样 #ff0000 这类色值不会被打断。/* ... */ 也可跨行注释。
+# 注意：anime / illustration 这类 Danbooru 词会把结果拉向插画域，做照片增强时别启用。
+
+# text clarity, sharp text, clean lines, high contrast, legible, no blur
+# anime wallpaper, vibrant colors, clean lines, sharp edges, detailed illustration

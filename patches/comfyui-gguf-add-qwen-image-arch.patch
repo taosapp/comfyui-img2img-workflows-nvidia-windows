@@ -1,0 +1,23 @@
+diff --git a/tools/convert.py b/tools/convert.py
+index 5029c87..7c2d84b 100644
+--- a/tools/convert.py
++++ b/tools/convert.py
+@@ -145,8 +145,16 @@ class ModelLumina2(ModelTemplate):
+         ("cap_embedder.1.weight", "context_refiner.0.attention.qkv.weight")
+     ]
+ 
+-arch_list = [ModelFlux, ModelSD3, ModelAura, ModelHiDream, CosmosPredict2, 
+-             ModelLTXV, ModelHyVid, ModelWan, ModelSDXL, ModelSD1, ModelLumina2]
++class ModelQwenImage(ModelTemplate):
++    arch = "qwen_image"
++    keys_detect = [
++        ("img_in.weight", "modulation.1.weight"), # Qwen-Image 2.1
++        ("img_in.weight", "txt_in.weight", "transformer_blocks.0.attn.to_q.weight"), # Qwen-Image
++    ]
++
++arch_list = [ModelFlux, ModelSD3, ModelAura, ModelHiDream, CosmosPredict2,
++             ModelLTXV, ModelHyVid, ModelWan, ModelSDXL, ModelSD1, ModelLumina2,
++             ModelQwenImage]
+ 
+ def is_model_arch(model, state_dict):
+     # check if model is correct
