@@ -24,12 +24,15 @@ masterpiece, best quality, 8k, sharp focus, fine texture details, photographic, 
 # and youthful, little or no makeup, wearing simple era-appropriate clothing. The two women have
 # clearly different faces and must not be averaged into one similar face: the woman on the left
 # has a rounder, fuller face with softer features; the woman on the right has larger, brighter
-# and more expressive eyes, more defined eyebrows and a slightly more defined nose on a slightly
-# slimmer face. Reconstruct each woman's eyes, eyebrows and nose individually from what is
-# visible in the damaged original, keeping each one's own character.
+# and more expressive eyes and more defined eyebrows. Reconstruct each woman's eyes, eyebrows
+# and nose individually from what is visible in the damaged original, keeping each one's own
+# character. Both women keep exactly the same head size, face width, cheek fullness, jaw shape
+# and soft roundness of the face as in the damaged original: full, youthful, slightly chubby
+# young faces, no slimming, no narrowing, no sharper jawline.
 #
 # 对应的 avoid 框内容（同样跟照片走，所以没写进下面的通用负向）：
 #   middle aged, older woman, aged face, wrinkles, grey hair, permed hair, mature woman, motherly,
+#   mature face, long face, narrow face, angular jaw, sharp jawline, defined cheekbones,
 #   child, kid, teenager, underage, schoolgirl,
 #   slim face, v-shaped jaw, long pointed chin, reshaped face, idealized beauty, beautified,
 #   beauty filter, idol face, glamour, heavy makeup,
@@ -79,5 +82,12 @@ slim face, thin face, narrow face, narrow jaw, v-shaped jaw, pointed chin, elong
 #      women" 会把眼神眉形压得呆滞。改成 "natural, clean and youthful" + 负向排除
 #      "dull lifeless eyes"；提神态用 "clear, bright and lively eyes"（描述原图本来的样子，
 #      不是美化指令，不会触发偶像脸——偶像脸是给**全图**堆 delicate/beautiful 造成的）。
+#    - **describe 里绝不能出现任何脸宽/轮廓词（2026-09-29 第五轮教训）**：为区分两人写的
+#      "a slightly slimmer face" 直接把两人都带成窄长脸 + 下颌变立体 + 显老。"more defined
+#      nose" 也有轻微成熟化。对策 = 五官差异只写**眼和眉**，鼻不写立体度；describe 末尾
+#      追加轮廓锁定句（"keep exactly the same head size, face width, cheek fullness, jaw
+#      shape and soft roundness... no slimming, no narrowing, no sharper jawline"，靠后的
+#      提示词权重更高），avoid 补 mature face / long face / narrow face / angular jaw /
+#      sharp jawline / defined cheekbones。定稿见上方示例（v4，实测脸型回到圆润）。
 # 6. 2026-09-29 起：本文件只放通用规则，人物/年龄/年代这些每张都不同的信息写进节点的
 #    describe / avoid 框（换照片只改这两个框，不用动本文件）。
