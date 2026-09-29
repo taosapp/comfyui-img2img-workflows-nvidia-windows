@@ -214,10 +214,10 @@
       },
       "widgets_values": [
         "",
-        "middle aged, older woman, aged face, wrinkles, crow's feet, sagging skin, jowls, grey hair, white hair, permed hair, mature woman, motherly, child, kid, teenager, underage, schoolgirl, slim face, v-shaped jaw, long pointed chin, reshaped face, changed face shape, different facial structure, idealized beauty, beautified, beauty filter, retouched magazine face, idol face, celebrity face, glamour, heavy makeup, plastic doll skin, two identical faces, same face, colorized, oversaturated, cartoon, anime, illustration, painting, drawing, 3d render, added objects, removed objects, text, watermark, border, frame, blur, noise, grain, scratches, stains, creases, damaged, torn, african features, black skin, caucasian features, western european features, european face, native american features, middle eastern features, indian features, not asian, wrong ethnicity, changed ethnicity, changed race",
+        "",
         1024
       ],
-      "title": "正向/负向提示词 + 分辨率"
+      "title": "编码（提示词由左侧节点送入）+ 分辨率"
     },
     {
       "id": 6,
@@ -349,7 +349,7 @@
     {
       "id": 13,
       "type": "StylePromptSelector",
-      "title": "风格选择（下拉）",
+      "title": "提示词（通用库 + 本图描述）",
       "pos": [
         380,
         0
@@ -385,6 +385,7 @@
       },
       "widgets_values": [
         "老照片修复",
+        "",
         ""
       ]
     },
@@ -446,7 +447,7 @@
       "outputs": [],
       "properties": {},
       "widgets_values": [
-        "## 老照片复原 · 使用说明\n\n1. 把老照片拖进左侧「LoadImage」→ 点 Queue（建议先在 Queue 里把种子设为 fixed 固定，对比多组提示词）\n2. 风格选择器保持「老照片修复」；文本框留空 = 用风格库原文。\n   想临时改提示词就直接写在文本框里（会覆盖库内容）。\n3. 常调参数（都在右列）：\n   - TextEncodeQwenImage21 的 resolution：1024=只修不放大；1344=顺带放大（更慢）\n   - KSampler：steps=20 / cfg=3.5 / denoise 必须保持 1.0（改动会花图）\n   - 种子 randomize 每次不一样；fixed 可复现\n4. 修复 + 上色：打开 styles/04-老照片修复.txt，按文件内注释启用上色变体（不用重启，重新 Queue 即可）。\n5. 严重破损的照片一次修不干净属正常：换几个种子重跑，或对不满意区域二次跑（把输出图再拖回 LoadImage）。\n产物保存在 output/photo_restore/。\n"
+        "## 老照片复原 · 怎么用\n\n**先看这一条：提示词分两处，各管各的**\n\n| 写在哪 | 写什么 | 例子 |\n|---|---|---|\n| `styles/04-老照片修复.txt`（通用规则） | 这类照片都要遵守的：怎么修、修到什么程度、不许改什么 | 去污损、重建细节、保持脸型轮廓、别改身份 |\n| 本节点「describe」框（这张照片） | 里面是谁、几个人、多大年纪、什么年代、穿什么 | two young Chinese women, about 20 years old, 1970s Chinese photo studio |\n| 本节点「avoid」框（这张照片） | 这一张不要出现的特征（人种、年龄方向） | child, teenager, middle aged, african features |\n\n**操作步骤**\n\n1. 把老照片拖进 LoadImage → 点 Queue\n2. 在「describe」框里写清这张照片的情况（不写的话模型会按自己的先验猜，这就是之前把人种和年龄修错的根因）\n3. 在「avoid」框里排除这一张不该有的东西\n4. 产物存 output/photo_restore/\n\n**换一张照片只要改 describe / avoid 两个框**（它们的值会跟着工作流保存），通用规则不用动。\n\n**常调参数**\n\n- `TextEncodeQwenImage21` 的 resolution：480 ≈ 544×416（约 1.5 分钟）、1024 ≈ 1152×864（约 4.6 分钟）、1344 ≈ 1536×1152（约 6.6 分钟，4:3 横图）\n- KSampler：steps=20 / cfg=3.5；denoise 必须保持 1.0\n- 种子 randomize 每次不一样，fixed 可复现；脸修得不满意就换种子多挑几张\n\n**示例文本**（可整段复制到 describe / avoid 框再改）在 `styles/04-老照片修复.txt` 的注释里。\n"
       ]
     }
   ],

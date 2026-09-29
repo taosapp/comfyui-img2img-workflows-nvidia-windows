@@ -18,6 +18,12 @@
     文件里写一行 ---负向--- （或 ---NEGATIVE---），其后的内容作为该风格的
     负向提示词，从节点第二个输出送出；之前的所有内容仍是正向提示词。
     没写分隔符的文件，负向输出为空串。
+
+分工（2026-09-29 定稿）：
+    风格库 .txt = 这类需求的**通用规则**（怎么写、修到什么程度、不许改什么）；
+    节点上的「describe / avoid」文本框 = **这一张照片的个体信息**（人物、人数、
+    年龄、年代、服饰……），分别追加到库正向/负向之后。改通用规则改文件，
+    改单张照片的信息改界面，两边都不用动另一处。
 """
 
 import logging
@@ -124,7 +130,7 @@ def library_stamp():
 
 
 class StylePromptSelector:
-    """下拉选风格 → 输出该风格的正向/负向提示词；文本框非空时以文本框为准（只覆盖正向）。"""
+    """下拉选风格（通用规则）+ 本图描述/避免（个体信息）→ 输出完整正向/负向提示词。"""
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -132,11 +138,17 @@ class StylePromptSelector:
         return {
             "required": {
                 "style": (names, {"tooltip": "风格库 = ComfyUI\\styles 里的 *.txt，文件名即风格名"}),
-                "prompt": ("STRING", {
+                "describe": ("STRING", {
                     "multiline": True,
                     "dynamicPrompts": False,
                     "default": "",
-                    "tooltip": "留空 = 直接用该风格文件里的原文；在这里改动只影响本次运行，不会写回风格库",
+                    "tooltip": "这一张照片的情况：人物、人数、年龄、年代、服饰…… 追加在风格库正向之后",
+                }),
+                "avoid": ("STRING", {
+                    "multiline": True,
+                    "dynamicPrompts": False,
+                    "default": "",
+                    "tooltip": "这一张照片要避免的内容（人种/年龄等特征），追加在风格库负向之后",
                 }),
             }
         }
@@ -146,36 +158,31 @@ class StylePromptSelector:
     FUNCTION = "select"
     CATEGORY = "style"
 
-    def select(self, style, prompt):
+    def select(self, style, describe, avoid):
         styles = load_styles()
         lib_pos, lib_neg = styles.get(style, ("", ""))
-        text = (prompt or "").strip()
-        if text:
-            if text == lib_pos:
-                LOG.info("[style-prompt] 风格「%s」→ 使用节点内文本（与库原文一致，%d 字符）", style, len(text))
-            else:
-                LOG.info("[style-prompt] 风格「%s」→ 节点内文本覆盖了库正向原文（%d 字符，库原文 %d 字符）",
-                         style, len(text), len(lib_pos))
-            pos = text
-        else:
-            pos = lib_pos
-            if not pos and styles:
-                fallback = next(iter(styles))
-                LOG.warning("[style-prompt] 风格「%s」不在库里，改用「%s」", style, fallback)
-                style = fallback
-                pos, lib_neg = styles[fallback]
-            if pos:
-                LOG.info("[style-prompt] 风格「%s」→ 库内原文（%d 字符）：%s ...",
-                         style, len(pos), pos[:60])
-            else:
-                LOG.warning("[style-prompt] 风格库为空：%s", STYLE_DIR)
-        if lib_neg:
-            LOG.info("[style-prompt] 风格「%s」→ 负向词（%d 字符）", style, len(lib_neg))
-        return (pos, lib_neg)
+        if not lib_pos and styles:
+            fallback = next(iter(styles))
+            LOG.warning("[style-prompt] 风格「%s」不在库里，改用「%s」", style, fallback)
+            style = fallback
+            lib_pos, lib_neg = styles[fallback]
+        if not lib_pos:
+            LOG.warning("[style-prompt] 风格库为空：%s", STYLE_DIR)
+
+        extra_pos = (describe or "").strip()
+        extra_neg = (avoid or "").strip()
+        pos = "\n".join(t for t in (lib_pos, extra_pos) if t)
+        neg = "\n".join(t for t in (lib_neg, extra_neg) if t)
+
+        LOG.info("[style-prompt] 风格「%s」→ 正向 = 库 %d 字符 + 本图 %d 字符；负向 = 库 %d 字符 + 本图 %d 字符",
+                 style, len(lib_pos), len(extra_pos), len(lib_neg), len(extra_neg))
+        if not pos:
+            LOG.warning("[style-prompt] 正向提示词为空（库与文本框都空）")
+        return (pos, neg)
 
     @classmethod
-    def IS_CHANGED(cls, style, prompt):
-        return "%s|%s|%s" % (library_stamp(), style, prompt)
+    def IS_CHANGED(cls, style, describe, avoid):
+        return "%s|%s|%s|%s" % (library_stamp(), style, describe, avoid)
 
 
 class StylePromptSave:
@@ -244,7 +251,7 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "StylePromptSelector": "风格提示词选择器（下拉）",
+    "StylePromptSelector": "风格提示词（通用库 + 本图描述）",
     "StylePromptSave": "风格提示词存回库",
 }
 

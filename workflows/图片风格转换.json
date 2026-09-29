@@ -213,9 +213,10 @@
       },
       "widgets_values": [
         "",
-        "overexposed, blown out highlights, washed out, faded, high key lighting, low contrast",
+        "",
         1024
-      ]
+      ],
+      "title": "编码（提示词由左侧节点送入）+ 分辨率"
     },
     {
       "id": 6,
@@ -347,7 +348,7 @@
     {
       "id": 13,
       "type": "StylePromptSelector",
-      "title": "风格选择（下拉）",
+      "title": "提示词（通用库 + 本图描述）",
       "pos": [
         380,
         0
@@ -383,6 +384,7 @@
       },
       "widgets_values": [
         "水彩画",
+        "",
         ""
       ]
     },

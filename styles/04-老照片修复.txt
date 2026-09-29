@@ -1,14 +1,41 @@
-Repair this heavily damaged old photograph of two young Chinese women, about 20 years old, adult young women (not children, not teenagers), photographed in a plain Chinese photo studio in the 1970s-1980s. They are Chinese, East Asian: East Asian eyes with epicanthic fold, East Asian nose and cheekbones, black hair, East Asian skin tone. They are ordinary real young women of that era: natural and unglamorous, little or no makeup, no beauty retouching, wearing simple era-appropriate clothing. Above all, preserve each person's own face exactly as it is: keep the original head shape, face outline, face shape, jawline, cheekbones, nose, mouth and facial proportions of each individual as seen in the damaged photograph. Do not slim, widen, lengthen or reshape the faces; do not make the two faces look alike; do not idealize or prettify them. Keep each person's own hairstyle from the photograph, their poses, head angles and the composition exactly the same. Completely remove all scratches, stains, mildew spots, creases, tears and surface noise; repair the faded and blotched areas; reconstruct the faces, hair and clothing with natural realistic photographic detail; restore clear focus and natural contrast. Keep the original vintage monochrome tone.
+Repair and restore this heavily damaged old photograph to how it originally looked.
+
+Completely remove all scratches, stains, mildew spots, creases, tears, fold marks and surface noise; repair the faded, blotched and missing areas; reconstruct the damaged parts of the faces, hair and clothing with natural realistic photographic detail; restore clear focus, natural contrast and the original film character.
+
+Keep the people exactly as they are in the damaged photograph: the same individuals, the same number of people, the same faces, the same head shapes, face outlines, jawlines, cheekbones and facial proportions, the same expressions, hairstyles, clothing, poses and composition. Do not slim, widen, lengthen or reshape any face; do not make different people look alike; do not change anyone's identity, age or body shape. Keep the original vintage tone (monochrome or sepia if that is what it is), and keep the result looking like a clean, sharp print of the same photograph, not a new picture.
 
 masterpiece, best quality, 8k, sharp focus, fine texture details, photographic, archival photo restoration
 
-# ===== 保守变体：轻度破损、只想去污不想动脸时用（启用它就注释掉上面第一段） =====
+# ===== 本图信息写在哪里 =====
+# 本文件只放**通用规则**（这类照片都要遵守的：怎么修、修到什么程度、不许改什么）。
+# 单张照片才有的信息 —— 人物、人数、年龄、年代、服饰 —— 填在节点的
+# 「describe」（要什么）和「avoid」（不要什么）两个文本框里，跟着工作流一起保存。
+# 下面这段是 6.jpg（两个七十年代中国女孩）当时用的实例，可整段复制到 describe 框再改：
+#
+# The photo shows two young Chinese women, about 20 years old, adult young women (not children,
+# not teenagers), photographed in a plain Chinese photo studio in the 1970s-1980s. They are
+# Chinese, East Asian: East Asian eyes with epicanthic fold, East Asian nose and cheekbones,
+# black hair, East Asian skin tone. They are ordinary real young women of that era: natural and
+# unglamorous, little or no makeup, wearing simple era-appropriate clothing.
+#
+# 对应的 avoid 框内容（同样跟照片走，所以没写进下面的通用负向）：
+#   middle aged, older woman, aged face, wrinkles, grey hair, permed hair, mature woman, motherly,
+#   child, kid, teenager, underage, schoolgirl,
+#   slim face, v-shaped jaw, long pointed chin, reshaped face, idealized beauty, beautified,
+#   beauty filter, idol face, glamour, heavy makeup, two identical faces, same face,
+#   african features, black skin, caucasian features, western european features, european face,
+#   native american features, middle eastern features, indian features, not asian, wrong ethnicity
+
+# ===== 保守变体：轻度破损、只想去污不想动脸时用 =====
 # Restore and enhance this damaged old photograph: repair all scratches, stains, creases, mildew spots, tears and dust, fix the fading, recover natural contrast, sharpness and fine details of the original photo. Keep the original people, faces, face shapes, ages, expressions, hairstyles, clothing, poses and composition exactly the same. Keep the original vintage monochrome/sepia tone, do not colorize, do not modernize anything.
 
 # ===== 修复 + 上色变体 =====
-# Colorize this old photograph naturally while restoring it: completely remove all scratches, stains, creases and fading, then add realistic natural colors appropriate to the era, natural young East Asian skin tones. Keep the people, faces, their face shapes, their young age, expressions, clothing, poses and composition exactly the same, do not change anyone's identity or age.
+# Colorize this old photograph naturally while restoring it: completely remove all scratches, stains, creases and fading, then add realistic natural colors appropriate to the era and to the people's actual skin tones. Keep the people, faces, their face shapes, their age, expressions, clothing, poses and composition exactly the same, do not change anyone's identity or age.
 
-# ===== 实测经验（2026-09-28，6.jpg 重度污损合影） =====
+---负向---
+colorized, oversaturated, cartoon, anime, illustration, painting, drawing, 3d render, CGI, plastic doll skin, over-smoothed, over-retouched, changed identity, different person, changed face, reshaped face, changed face shape, added objects, removed objects, text, watermark, border, frame, blur, out of focus, noise, grain, compression artifacts, scratches, stains, creases, mildew, damaged, torn, low resolution
+
+# ===== 实测经验（2026-09-28 ~ 09-29，6.jpg 重度污损合影） =====
 # 1. 保守措辞（"repair... keep exactly the same"）对重度污损几乎无效——模型会把
 #    "保持原样"执行得比"修复"更狠，污损原样保留。重度破损要用 "restore to how it
 #    originally looked / reconstruct / rendered clearly and cleanly" 这类强措辞。
@@ -18,16 +45,15 @@ masterpiece, best quality, 8k, sharp focus, fine texture details, photographic, 
 #    res=1024 → 1152×864；res=1344 → 1536×1152；res=480 → 544×416（快约 4.6 倍）。
 # 4. 轻度污损（只有折痕黄斑、脸还清楚）用保守变体即可，不会重画脸。
 # 5. **看不见的信息要靠提示词写死，而且矫枉必须留余地**（三次迭代教训）：
-#    - 人种：不写就把中国人修成非洲/土著面孔 → 写 "Chinese, East Asian eyes with epicanthic fold"，
-#      负向词排除 african/caucasian/native american features。
+#    - 人种：不写就把中国人修成非洲/土著面孔 → describe 写 "Chinese, East Asian eyes
+#      with epicanthic fold"，avoid 排除 african / caucasian / native american features。
 #    - 年龄是**双向**的：不写会修成 40 岁；但正向堆 "no wrinkles / delicate refined beautiful /
-#      classic beauty" 又会修成 15 岁偶像脸。正确做法 = 正向写 "about 20 years old, adult young
-#      women, ordinary real women, natural unglamorous, little or no makeup"，
-#      负向词两头排除：middle aged / wrinkles / grey hair + child / teenager / underage。
-#    - **脸型轮廓是修复的底线**：必须显式写 "keep the original head shape, face outline, face shape,
-#      jawline, cheekbones and facial proportions; do not slim, widen or reshape; do not make the two
-#      faces look alike"，负向词加 slim face / v-shaped jaw / reshaped face / idealized beauty /
-#      beauty filter / idol face。否则模型会把两个人改成同款"标准美"脸。
-
----负向---
-middle aged, older woman, aged face, wrinkles, crow's feet, sagging skin, jowls, grey hair, white hair, permed hair, mature woman, motherly, child, kid, teenager, underage, schoolgirl, slim face, v-shaped jaw, long pointed chin, reshaped face, changed face shape, different facial structure, idealized beauty, beautified, beauty filter, retouched magazine face, idol face, celebrity face, glamour, heavy makeup, plastic doll skin, two identical faces, same face, colorized, oversaturated, cartoon, anime, illustration, painting, drawing, 3d render, added objects, removed objects, text, watermark, border, frame, blur, noise, grain, scratches, stains, creases, damaged, torn, african features, black skin, caucasian features, western european features, european face, native american features, middle eastern features, indian features, not asian, wrong ethnicity, changed ethnicity, changed race
+#      classic beauty" 又会修成 15 岁偶像脸。正确做法 = describe 写 "about 20 years old,
+#      adult young women, ordinary real women, natural unglamorous, little or no makeup"，
+#      avoid 两头排除：middle aged / wrinkles / grey hair + child / teenager / underage。
+#    - **脸型轮廓是修复的底线**：通用正向里已写死 "keep the head shapes, face outlines,
+#      jawlines, cheekbones and facial proportions; do not slim, widen or reshape; do not make
+#      different people look alike"，avoid 里再补 slim face / v-shaped jaw / reshaped face /
+#      idol face。否则模型会把两个人改成同款"标准美"脸。
+# 6. 2026-09-29 起：本文件只放通用规则，人物/年龄/年代这些每张都不同的信息写进节点的
+#    describe / avoid 框（换照片只改这两个框，不用动本文件）。

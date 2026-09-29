@@ -1,14 +1,12 @@
 # -*- coding: utf-8 -*-
-"""风格提示词选择器（Style Prompt Selector）。
+"""风格提示词节点（Style Prompt）。
 
-给「图片风格转换」这类工作流提供一个下拉选择框：
-风格库放在 ComfyUI 根目录的 styles/ 文件夹里，一条风格 = 一个 .txt 文件。
-
-WEB_DIRECTORY 让 web/ 下的 js 被前端加载（把选中风格的提示词自动填进文本框）。
+给「图片风格转换 / 老照片复原」这类工作流提供统一的提示词入口：
+    - 通用规则写在 ComfyUI 根目录 styles/ 的 .txt 风格库里（一条风格 = 一个文件）
+    - 单张图片的个体信息写在节点界面的「describe / avoid」文本框里
+节点输出两路 STRING（正向 / 负向），直接接进编码器。
 """
 
 from .nodes import NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS
 
-WEB_DIRECTORY = "./web"
-
-__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS", "WEB_DIRECTORY"]
+__all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
