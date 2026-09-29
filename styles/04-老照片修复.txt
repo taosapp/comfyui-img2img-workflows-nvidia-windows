@@ -28,3 +28,6 @@ masterpiece, best quality, 8k, sharp focus, fine texture details, photographic, 
 #      jawline, cheekbones and facial proportions; do not slim, widen or reshape; do not make the two
 #      faces look alike"，负向词加 slim face / v-shaped jaw / reshaped face / idealized beauty /
 #      beauty filter / idol face。否则模型会把两个人改成同款"标准美"脸。
+
+---负向---
+middle aged, older woman, aged face, wrinkles, crow's feet, sagging skin, jowls, grey hair, white hair, permed hair, mature woman, motherly, child, kid, teenager, underage, schoolgirl, slim face, v-shaped jaw, long pointed chin, reshaped face, changed face shape, different facial structure, idealized beauty, beautified, beauty filter, retouched magazine face, idol face, celebrity face, glamour, heavy makeup, plastic doll skin, two identical faces, same face, colorized, oversaturated, cartoon, anime, illustration, painting, drawing, 3d render, added objects, removed objects, text, watermark, border, frame, blur, noise, grain, scratches, stains, creases, damaged, torn, african features, black skin, caucasian features, western european features, european face, native american features, middle eastern features, indian features, not asian, wrong ethnicity, changed ethnicity, changed race

@@ -13,6 +13,11 @@
     行首（允许空白）的 # 或 // 整行忽略；/* ... */ 块注释跨行剔除。
     行中间的 # 不算注释（避免误伤 #ff0000 这类色值）。
     想临时停用某段提示词：把它单独放一行，行首加 # 即可。
+
+风格文件支持负向提示词段（2026-09-29 新增）：
+    文件里写一行 ---负向--- （或 ---NEGATIVE---），其后的内容作为该风格的
+    负向提示词，从节点第二个输出送出；之前的所有内容仍是正向提示词。
+    没写分隔符的文件，负向输出为空串。
 """
 
 import logging
@@ -68,25 +73,41 @@ def strip_comments(text):
     return "\n".join(ln.strip() for ln in kept if ln.strip()).strip()
 
 
+_NEG_SEP = re.compile(r"^\s*-{2,}\s*(?:负向|negative)\s*-{2,}\s*$", re.IGNORECASE)
+
+
+def split_negative(text):
+    """按 ---负向--- 分隔符把风格文本拆成 (正向, 负向)，各自剔除注释。"""
+    pos, neg = [], []
+    target = pos
+    for ln in text.splitlines():
+        if _NEG_SEP.match(ln):
+            target = neg
+            continue
+        target.append(ln)
+    return strip_comments("\n".join(pos)), strip_comments("\n".join(neg))
+
+
 def load_styles():
-    """读取整份风格库，返回 {风格名: 提示词}（顺序 = 文件名排序）。"""
+    """读取整份风格库，返回 {风格名: (正向, 负向)}（顺序 = 文件名排序）。"""
     styles = {}
     for fn in library_files():
         path = os.path.join(STYLE_DIR, fn)
         try:
             with open(path, encoding="utf-8") as fh:
-                text = strip_comments(fh.read())
+                text = fh.read()
         except (OSError, UnicodeDecodeError) as exc:
             LOG.warning("[style-prompt] 读取失败 %s：%s", fn, exc)
             continue
-        if not text:
+        pos, neg = split_negative(text)
+        if not pos and not neg:
             continue
         name = display_name(os.path.splitext(fn)[0])
         if name in styles:  # 重名时退回完整文件名，避免互相覆盖
             name = os.path.splitext(fn)[0]
         while name in styles:
             name += " "
-        styles[name] = text
+        styles[name] = (pos, neg)
     return styles
 
 
@@ -103,7 +124,7 @@ def library_stamp():
 
 
 class StylePromptSelector:
-    """下拉选风格 → 输出该风格的提示词；文本框非空时以文本框为准。"""
+    """下拉选风格 → 输出该风格的正向/负向提示词；文本框非空时以文本框为准（只覆盖正向）。"""
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -120,34 +141,37 @@ class StylePromptSelector:
             }
         }
 
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("prompt",)
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("prompt", "negative")
     FUNCTION = "select"
     CATEGORY = "style"
 
     def select(self, style, prompt):
         styles = load_styles()
+        lib_pos, lib_neg = styles.get(style, ("", ""))
         text = (prompt or "").strip()
         if text:
-            source = styles.get(style, "")
-            if text == source:
+            if text == lib_pos:
                 LOG.info("[style-prompt] 风格「%s」→ 使用节点内文本（与库原文一致，%d 字符）", style, len(text))
             else:
-                LOG.info("[style-prompt] 风格「%s」→ 节点内文本覆盖了库原文（%d 字符，库原文 %d 字符）",
-                         style, len(text), len(source))
-            return (text,)
-
-        text = styles.get(style, "")
-        if not text and styles:
-            fallback = next(iter(styles))
-            LOG.warning("[style-prompt] 风格「%s」不在库里，改用「%s」", style, fallback)
-            style, text = fallback, styles[fallback]
-        if text:
-            LOG.info("[style-prompt] 风格「%s」→ 库内原文（%d 字符）：%s ...",
-                     style, len(text), text[:60])
+                LOG.info("[style-prompt] 风格「%s」→ 节点内文本覆盖了库正向原文（%d 字符，库原文 %d 字符）",
+                         style, len(text), len(lib_pos))
+            pos = text
         else:
-            LOG.warning("[style-prompt] 风格库为空：%s", STYLE_DIR)
-        return (text,)
+            pos = lib_pos
+            if not pos and styles:
+                fallback = next(iter(styles))
+                LOG.warning("[style-prompt] 风格「%s」不在库里，改用「%s」", style, fallback)
+                style = fallback
+                pos, lib_neg = styles[fallback]
+            if pos:
+                LOG.info("[style-prompt] 风格「%s」→ 库内原文（%d 字符）：%s ...",
+                         style, len(pos), pos[:60])
+            else:
+                LOG.warning("[style-prompt] 风格库为空：%s", STYLE_DIR)
+        if lib_neg:
+            LOG.info("[style-prompt] 风格「%s」→ 负向词（%d 字符）", style, len(lib_neg))
+        return (pos, lib_neg)
 
     @classmethod
     def IS_CHANGED(cls, style, prompt):
@@ -227,7 +251,12 @@ NODE_DISPLAY_NAME_MAPPINGS = {
 
 def _styles_route(request):
     from aiohttp import web
-    return web.json_response({"styles": load_styles(), "dir": STYLE_DIR})
+    styles = load_styles()
+    return web.json_response({
+        "styles": {k: v[0] for k, v in styles.items()},
+        "negatives": {k: v[1] for k, v in styles.items()},
+        "dir": STYLE_DIR,
+    })
 
 
 def _register_routes():

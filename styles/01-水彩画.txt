@@ -1,1 +1,4 @@
 Transform this image into a soft muted watercolor painting style with rich midtones and deep shadows, keeping the main subject and composition
+
+---负向---
+overexposed, blown out highlights, washed out, faded, high key lighting, low contrast

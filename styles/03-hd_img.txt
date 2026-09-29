@@ -10,3 +10,6 @@ Enhance this photograph to high definition: sharpen focus, recover fine details 
 
 # text clarity, sharp text, clean lines, high contrast, legible, no blur
 # anime wallpaper, vibrant colors, clean lines, sharp edges, detailed illustration
+
+---负向---
+cartoon, anime, illustration, painting, drawing, 3d render, plastic doll skin, over-smoothed, changed face, changed identity, added objects, removed objects, text, watermark, blurry, deformed
