@@ -6,7 +6,6 @@
 | 工作流 | 用途 | 速度（RTX 3060 12GB 实测） |
 |---|---|---|
 | `workflows/图片风格转换.json` | 通用图生图风格转换，下拉框切换风格库（水彩/简笔画/高清增强等） | 约 4-6 分钟/张（1152×864） |
-| `workflows/老照片复原.json` | 老照片修复（去污损/划痕/霉斑），人种、年龄、脸型可控 | 544 宽约 1.5 分钟；1024 约 4.6 分钟；1344 约 6.6 分钟 |
 | `workflows/抠图.json` | 透明底抠图（BiRefNet 专用分割模型，不改像素） | 约 3 秒/张 |
 
 配套一个自建小节点包 `custom_nodes/comfyui-style-prompt/`（风格库下拉选择器 + 存回节点），
@@ -24,20 +23,6 @@
 风格 = `styles/` 目录下一个 `.txt` 文件，文件名（去掉序号）就是下拉框里的名字。
 **新增风格只要丢一个 txt 进去、浏览器 F5 即可**；改内容直接重新 Queue。
 风格文件支持 `#` 注释（详见 `styles/_说明.txt`）。
-
-### 老照片复原
-与风格转换同管线，固化了「老照片修复」风格与专用负向提示词。重度污损照片的实测经验
-（都写在 `styles/04-老照片修复.txt` 的注释里）：
-
-- 保守措辞（repair + keep exactly the same）对重度污损几乎无效，要用
-  "restore to how it originally looked / reconstruct" 的强措辞；
-- **看不见的信息必须显式写死**：人种（Chinese, East Asian…）、年龄（about 20 years old +
-  负向词同时排除 middle aged 和 teenager）、以及**脸型轮廓保护**
-  （keep the original face outline / jawline / facial proportions, do not reshape）——
-  否则模型会按自己的先验"自由发挥"；
-- 破损到看不清的脸，修复结果是"合理重建"而非真实还原，多换种子挑选；
-- 输出尺寸由 `TextEncodeQwenImage21` 的 `resolution` 控制：
-  实际宽 = `round(√(res²×宽高比)/32)×32`，例如 4:3 横图 res=480 → 544×416。
 
 ### 抠图
 核心节点 `LoadBackgroundRemovalModel + RemoveBackground`（BiRefNet，Swin-L 版），
@@ -89,7 +74,7 @@ python main.py --lowvram --preview-method auto
 ## 目录结构
 
 ```
-├── workflows/                      # 三个工作流（浏览器直接打开）
+├── workflows/                      # 两个工作流（浏览器直接打开）
 ├── styles/                         # 风格库：一个 txt = 一种风格，支持 # 注释
 ├── custom_nodes/comfyui-style-prompt/   # 自建节点：风格下拉选择器 + 存回节点
 └── patches/                        # ComfyUI-GGUF 的 Qwen-Image 架构补丁
@@ -98,4 +83,4 @@ python main.py --lowvram --preview-method auto
 ## 免责声明
 
 本项目只包含工作流与代码，不含任何模型权重与图片素材。模型的使用请遵守各自许可证；
-生成内容（尤其是人物修复/风格化）请遵守当地法律法规，不要用于伪造他人身份等用途。
+生成内容（尤其是人物风格化）请遵守当地法律法规，不要用于伪造他人身份等用途。
