@@ -7,9 +7,9 @@
 |---|---|---|
 | `workflows/图片风格转换.json` | 通用图生图风格转换，下拉框切换风格库（水彩/简笔画/高清增强等） | 约 4-6 分钟/张（1152×864） |
 | `workflows/抠图.json` | 透明底抠图（BiRefNet 专用分割模型，不改像素） | 约 3 秒/张 |
-| `workflows/产品图层拆分.json` | 产品海报拆成 主体/文字/背景 三层（SAM3 文本提示分割） | 约 1 分钟/张 |
 | `workflows/文生图.json` | Qwen-Image-2.1 文生图（GGUF + KV 缓存加速） | 待实测 |
 | `workflows/分层文生图.json` | Qwen-Image-Layered 一次生成分层图（文字直接生成多层，LatentCut 切层输出） | 待实测 |
+| `workflows/minimax_h3_i2v_auto_canvas.json` | MiniMax-H3 图生视频（768p GGUF + turbo 8 步 LoRA），画布自动适配任意比例输入图 | 约 30 分钟/5 秒视频（内存紧张时） |
 
 配套一个自建小节点包 `custom_nodes/comfyui-style-prompt/`（风格库下拉选择器 + 存回节点 + 背景填充节点），
 以及一份 ComfyUI-GGUF 补丁（见 `patches/`）。
@@ -32,13 +32,10 @@
 输出与输入同尺寸的透明 PNG。注意链路中必须过一次 `InvertMask`
 （`JoinImageWithAlpha` 内部做 `alpha = 1 - mask`），`GrowMask` 放在反相前用于去白边。
 
-### 产品图层拆分
-一张产品海报 → **主体 / 文字 / 背景三层**，用 SAM3 的文本提示分割
-（`smartphone:2`、`text:30` 这类 `词:实例数` 语法，模型放 `models/checkpoints/`，用
-`CheckpointLoaderSimple` 加载）。关键掩膜运算：**文字掩膜 − 主体外扩 = 纯文字**
-（机身印字不会被误检）；背景层由自建节点 `BackgroundFillSmooth` 补全
-（逐行水平插值延续结构 + 轻扩散 + 匹配噪点），**不跑生图大模型**，
-被产品重新合成回去时中心区本就会被盖住，边界延续才是质量关键。
+### MiniMax-H3 图生视频
+`LoadImage → 画布自适应（短边 768、长边 ≤1344、32 对齐）→ TextEncodeQwenImage21 → KSampler → VAEDecode → SaveVideo`。
+帧数取 17k+5 网格；本地开放权重上限 768p。注意该工作流全量权重约 27GB 常驻内存，
+32GB 内存的机器跑图片工作流时建议先重启 ComfyUI 再跑视频（反之亦然）。
 
 ## 安装
 
@@ -64,9 +61,10 @@
 | `qwen3vl_8b_int8_convrot.safetensors` | 8.7 GB | `models/text_encoders/` | 基于 [Qwen/Qwen3-VL-8B-Instruct](https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct) 的 int8 convrot 量化版（ComfyUI 社区量化）；也可用官方 BF16 |
 | `qwen_image_2.1_vae_bf16.safetensors` | 0.63 GB | `models/vae/` | [Comfy-Org/Qwen-Image-2.1](https://huggingface.co/Comfy-Org/Qwen-Image-2.1) |
 | `birefnet.safetensors`（仅抠图用） | 0.42 GB | `models/background_removal/` | [Comfy-Org/BiRefNet](https://huggingface.co/Comfy-Org/BiRefNet)（MIT） |
-| `sam3.1_multiplex_fp16.safetensors`（仅图层拆分用） | 1.7 GB | `models/checkpoints/` | [Comfy-Org/sam3.1](https://huggingface.co/Comfy-Org/sam3.1) |
 
 - 合计约 **14.7 GB**；国内网络可用 [hf-mirror.com](https://hf-mirror.com) 镜像下载；
+- **视频工作流另需 MiniMax-H3 全套约 27GB**（主模型 GGUF + FL2VA turbo LoRA + 音视频 VAE 等，
+  文件名见工作流各加载节点），`models/unet|text_encoders|loras|vae` 各有对应目录；
 - **文件名必须一字不差**：工作流按文件名找模型；
 - 各模型许可证不同（Qwen 系列为 Apache-2.0 / Qwen Research，请自行确认你的用途是否合规）。
 

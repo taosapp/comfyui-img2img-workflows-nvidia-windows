@@ -1,15 +1,19 @@
-# 不应出现的的大文件 / 隐私内容
-*.gguf
-*.safetensors
-*.ckpt
-*.pt
-*.pth
-*.bin
+# 本仓库只跟踪策划资产：工作流 / 风格库 / 自建节点 / 补丁 / 文档。
+# 目录本体同时是一套完整 ComfyUI 运行环境（上游代码 + 模型 + 个人素材），
+# 一律不进 git，采用白名单模式：
 
-# 运行产物与个人素材
-input/
-output/
-user/
+/*
+!/.gitignore
+!/README.md
+!/LICENSE
+!/workflows/
+!/styles/
+!/custom_nodes/
+!/patches/
+
+# custom_nodes 里只保留自建节点包
+/custom_nodes/*
+!/custom_nodes/comfyui-style-prompt/
 
 # Python
 __pycache__/
