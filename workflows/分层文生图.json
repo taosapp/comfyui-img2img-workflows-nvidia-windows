@@ -1,0 +1,596 @@
+{
+  "last_node_id": 20,
+  "last_link_id": 12,
+  "nodes": [
+    {
+      "id": 20,
+      "type": "MarkdownNote",
+      "pos": [
+        -470,
+        0
+      ],
+      "size": [
+        420,
+        780
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "## 分层文生图（Qwen-Image-Layered · GGUF）\n\n**输入文字 → 直接输出多张完整 RGBA 图层**。背景层是模型生成时就把主体位置补全的，**没有洞**，主体可以整层挪走、删掉或单独改。\n\n### 用法\n1. 在 `④ 提示词` 里写 prompt（中文可用）\n2. `⑥ 分层潜空间` 里设 宽 × 高 和 **layers（层数）**，默认 640×640、3 层；层数越多越慢\n3. 点 `Queue`（或 Ctrl+Enter）\n\n输出：`output/分层文生图/QwenLayered_00001_.png`（第 1 层）、`00002`（第 2 层）……**每张都是带透明通道的图层**，从 00001 往上叠放还原成完整画面。\n\n实测（2026-09-30）：layers=3 时 00001 是**全不透明的完整背景**（主体位置已画好，没有洞），00002=主体/展台，00003=文字层。layers=2 时模型可能不产出完整背景层，海报类建议 ≥3。\n\n### 和「文生图 + 抠图拆分」的区别\n| | 文生图.json（拆分已移除） | 本工作流 |\n| --- | --- | --- |\n| 原理 | 先生成合成图，BiRefNet 事后抠 | 生成时即逐层输出 |\n| 背景层 | 主体处是**洞**（需补洞） | **完整**，遮挡处已画好 |\n| 速度 | 快（8B） | 慢（20B，3060 上数分钟） |\n| 层内容 | 只有主体/背景两层 | 模型自动决定每层是什么 |\n\n### 采样参数（官方模板值，勿轻改）\nsteps **20** / cfg **2.5** / euler / simple / `⑦ shift=1`。\n⑨⑩ 两个节点负责把「参考槽」切掉、把层维转成 batch，**别删**。\n\n### 模型（都在 models/ 下）\n| 文件 | 目录 |\n| --- | --- |\n| qwen-image-layered-Q4_K_S.gguf | diffusion_models |\n| qwen_2.5_vl_7b_fp8_scaled.safetensors | text_encoders |\n| qwen_image_layered_vae.safetensors | vae |\n\n注意：本模型用的文本编码器是 **Qwen2.5-VL-7B**（和 2.1 的 Qwen3-VL-8B 不通用）。\n\n### 想要「已有图片分层」\n官方另有 Image-to-Layers 玩法：把 LoadImage 接 VAEEncode + ReferenceLatent 替换 ⑥ 的空潜空间即可，本工作流只做文生图。\n"
+      ]
+    },
+    {
+      "id": 1,
+      "type": "UnetLoaderGGUF",
+      "title": "① 分层主模型（Layered GGUF Q4_K_S）",
+      "pos": [
+        0,
+        0
+      ],
+      "size": [
+        330,
+        58
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            1
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "UnetLoaderGGUF"
+      },
+      "widgets_values": [
+        "qwen-image-layered-Q4_K_S.gguf"
+      ]
+    },
+    {
+      "id": 2,
+      "type": "CLIPLoader",
+      "title": "② 文本编码器（Qwen2.5-VL-7B fp8）",
+      "pos": [
+        0,
+        140
+      ],
+      "size": [
+        330,
+        82
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            2,
+            3
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPLoader"
+      },
+      "widgets_values": [
+        "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+        "qwen_image",
+        "default"
+      ]
+    },
+    {
+      "id": 3,
+      "type": "VAELoader",
+      "title": "③ 分层 VAE（RGBA）",
+      "pos": [
+        0,
+        320
+      ],
+      "size": [
+        330,
+        58
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            4
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "qwen_image_layered_vae.safetensors"
+      ]
+    },
+    {
+      "id": 7,
+      "type": "ModelSamplingAuraFlow",
+      "title": "⑦ shift = 1（官方值）",
+      "pos": [
+        0,
+        470
+      ],
+      "size": [
+        330,
+        58
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 1
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            8
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ModelSamplingAuraFlow"
+      },
+      "widgets_values": [
+        1.0
+      ]
+    },
+    {
+      "id": 4,
+      "type": "CLIPTextEncode",
+      "title": "④ 提示词",
+      "pos": [
+        420,
+        0
+      ],
+      "size": [
+        400,
+        180
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 2
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            5
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        "生成一张手机产品国庆促销海报"
+      ]
+    },
+    {
+      "id": 5,
+      "type": "CLIPTextEncode",
+      "title": "⑤ 负向提示词（可留空）",
+      "pos": [
+        420,
+        240
+      ],
+      "size": [
+        400,
+        120
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "clip",
+          "type": "CLIP",
+          "link": 3
+        }
+      ],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            6
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        ""
+      ]
+    },
+    {
+      "id": 6,
+      "type": "EmptyQwenImageLayeredLatentImage",
+      "title": "⑥ 分层潜空间（宽×高×层数）",
+      "pos": [
+        420,
+        420
+      ],
+      "size": [
+        330,
+        130
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            7
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "EmptyQwenImageLayeredLatentImage"
+      },
+      "widgets_values": [
+        640,
+        640,
+        3,
+        1
+      ]
+    },
+    {
+      "id": 8,
+      "type": "KSampler",
+      "title": "⑧ 采样（20 / 2.5 / euler / simple）",
+      "pos": [
+        900,
+        0
+      ],
+      "size": [
+        315,
+        262
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 8
+        },
+        {
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 5
+        },
+        {
+          "name": "negative",
+          "type": "CONDITIONING",
+          "link": 6
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 7
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            9
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSampler"
+      },
+      "widgets_values": [
+        42,
+        "randomize",
+        20,
+        2.5,
+        "euler",
+        "simple",
+        1.0
+      ]
+    },
+    {
+      "id": 9,
+      "type": "LatentCut",
+      "title": "⑨ 切掉参考槽（保留各图层）",
+      "pos": [
+        1280,
+        0
+      ],
+      "size": [
+        300,
+        82
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 9
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            10
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LatentCut"
+      },
+      "widgets_values": [
+        "t",
+        1,
+        16384
+      ]
+    },
+    {
+      "id": 10,
+      "type": "LatentCutToBatch",
+      "title": "⑩ 层 → batch",
+      "pos": [
+        1280,
+        160
+      ],
+      "size": [
+        300,
+        82
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 10
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            11
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LatentCutToBatch"
+      },
+      "widgets_values": [
+        "t",
+        1
+      ]
+    },
+    {
+      "id": 11,
+      "type": "VAEDecode",
+      "title": "⑪ 解码（每层一张 RGBA）",
+      "pos": [
+        1640,
+        0
+      ],
+      "size": [
+        210,
+        46
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 11
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 4
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            12
+          ],
+          "slot_index": 0
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 12,
+      "type": "SaveImage",
+      "title": "⑫ 保存到 output/分层文生图/",
+      "pos": [
+        1900,
+        0
+      ],
+      "size": [
+        315,
+        270
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 12
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "分层文生图/QwenLayered"
+      ]
+    }
+  ],
+  "links": [
+    [
+      1,
+      1,
+      0,
+      7,
+      0,
+      "MODEL"
+    ],
+    [
+      2,
+      2,
+      0,
+      4,
+      0,
+      "CLIP"
+    ],
+    [
+      3,
+      2,
+      0,
+      5,
+      0,
+      "CLIP"
+    ],
+    [
+      4,
+      3,
+      0,
+      11,
+      1,
+      "VAE"
+    ],
+    [
+      5,
+      4,
+      0,
+      8,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      6,
+      5,
+      0,
+      8,
+      2,
+      "CONDITIONING"
+    ],
+    [
+      7,
+      6,
+      0,
+      8,
+      3,
+      "LATENT"
+    ],
+    [
+      8,
+      7,
+      0,
+      8,
+      0,
+      "MODEL"
+    ],
+    [
+      9,
+      8,
+      0,
+      9,
+      0,
+      "LATENT"
+    ],
+    [
+      10,
+      9,
+      0,
+      10,
+      0,
+      "LATENT"
+    ],
+    [
+      11,
+      10,
+      0,
+      11,
+      0,
+      "LATENT"
+    ],
+    [
+      12,
+      11,
+      0,
+      12,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "config": {},
+  "extra": {},
+  "version": 0.4
+}

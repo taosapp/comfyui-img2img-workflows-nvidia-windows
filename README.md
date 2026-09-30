@@ -8,6 +8,8 @@
 | `workflows/图片风格转换.json` | 通用图生图风格转换，下拉框切换风格库（水彩/简笔画/高清增强等） | 约 4-6 分钟/张（1152×864） |
 | `workflows/抠图.json` | 透明底抠图（BiRefNet 专用分割模型，不改像素） | 约 3 秒/张 |
 | `workflows/产品图层拆分.json` | 产品海报拆成 主体/文字/背景 三层（SAM3 文本提示分割） | 约 1 分钟/张 |
+| `workflows/文生图.json` | Qwen-Image-2.1 文生图（GGUF + KV 缓存加速） | 待实测 |
+| `workflows/分层文生图.json` | Qwen-Image-Layered 一次生成分层图（文字直接生成多层，LatentCut 切层输出） | 待实测 |
 
 配套一个自建小节点包 `custom_nodes/comfyui-style-prompt/`（风格库下拉选择器 + 存回节点 + 背景填充节点），
 以及一份 ComfyUI-GGUF 补丁（见 `patches/`）。
@@ -84,7 +86,7 @@ python main.py --lowvram --preview-method auto
 ## 目录结构
 
 ```
-├── workflows/                      # 三个工作流（浏览器直接打开）
+├── workflows/                      # 五个工作流（浏览器直接打开）
 ├── styles/                         # 风格库：一个 txt = 一种风格，支持 # 注释
 ├── custom_nodes/comfyui-style-prompt/   # 自建节点：风格下拉选择器 + 存回节点
 └── patches/                        # ComfyUI-GGUF 的 Qwen-Image 架构补丁
