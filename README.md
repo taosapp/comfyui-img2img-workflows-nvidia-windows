@@ -37,6 +37,26 @@
 帧数取 17k+5 网格；本地开放权重上限 768p。注意该工作流全量权重约 27GB 常驻内存，
 32GB 内存的机器跑图片工作流时建议先重启 ComfyUI 再跑视频（反之亦然）。
 
+## 快速开始（新电脑）
+
+本仓库 clone 下来后**只含策划资产**（工作流/风格库/自建节点/补丁/启动器），
+运行时、依赖、模型都不在仓库里。用任意 Python 3.9+ 跑一次准备脚本即可补齐：
+
+```bash
+git clone https://github.com/taosapp/comfyui-img2img-workflows-nvidia-windows.git
+cd comfyui-img2img-workflows-nvidia-windows
+python scripts/prepare.py                # 全自动：环境 + 运行时 + 依赖 + 节点补丁 + 模型下载
+python scripts/prepare.py --check        # 或先只做检查，缺什么会列出来
+python scripts/prepare.py --with-video   # 连 MiniMax-H3 视频模型（约 27GB）一起装
+```
+
+准备脚本会依次：找/建 conda 环境 `comfyui`（无 conda 则退建项目内 `.venv`）→
+浅克隆官方 ComfyUI 补齐运行时 → 安装 pytorch cu126 与依赖 →
+克隆 ComfyUI-GGUF 并打上本仓库的补丁 → 按 `scripts/prepare.py` 内置清单
+从 hf-mirror 下载缺失模型（支持断点续传，中断重跑即可续）。
+装完双击 `start_comfyui.bat`（Windows）或 `bash start_comfyui_mac.sh`（macOS）启动。
+少数模型没有自动下载地址（脚本会打印获取指引），按提示手动放置即可。
+
 ## 安装
 
 1. 安装 [ComfyUI](https://github.com/comfyanonymous/ComfyUI)（本仓库工作流基于 0.37.0 实测）；
@@ -87,7 +107,9 @@ python main.py --lowvram --preview-method auto
 ├── workflows/                      # 五个工作流（浏览器直接打开）
 ├── styles/                         # 风格库：一个 txt = 一种风格，支持 # 注释
 ├── custom_nodes/comfyui-style-prompt/   # 自建节点：风格下拉选择器 + 存回节点
-└── patches/                        # ComfyUI-GGUF 的 Qwen-Image 架构补丁
+├── patches/                        # ComfyUI-GGUF 的 Qwen-Image 架构补丁
+├── scripts/prepare.py              # 新机器一键准备（环境/运行时/依赖/模型）
+└── start_comfyui.bat               # Windows 启动器（自动探测 conda/venv，源码为 .src.txt）
 ```
 
 ## 免责声明

@@ -1,0 +1,183 @@
+@echo off
+setlocal EnableExtensions EnableDelayedExpansion
+rem ================================================================
+rem  ComfyUI 启动器（Windows）
+rem
+rem  用法：
+rem    双击本文件                 -> 用默认 conda 环境启动
+rem    start_comfyui.bat 环境名   -> 临时改用其它 conda 环境
+rem
+rem  想改默认行为，请设系统环境变量，不要改本文件：
+rem    CONDA_ENV    conda 环境名          默认 comfyui
+rem    COMFY_ARGS   传给 main.py 的参数    默认 --listen 0.0.0.0 --lowvram --preview-method auto
+rem    HF_ENDPOINT  HuggingFace 下载镜像  默认 https://hf-mirror.com
+rem    （显存 16GB 以上可以去掉 --lowvram，速度会更快）
+rem
+rem  【局域网访问】默认带 --listen 0.0.0.0，开机后局域网内其它电脑可访问
+rem    http://本机IP:8188（本窗口启动时会打印该地址）。
+rem    注意：ComfyUI 没有登录密码，--listen 等于把界面交给整个局域网，
+rem    只在可信网络里用；不想开放就把 --listen 0.0.0.0 从 COMFY_ARGS 里去掉。
+rem
+rem  本脚本不含写死的绝对路径：
+rem    ComfyUI 目录 = 本文件所在目录，换电脑、换盘符、换用户名都不用改。
+rem
+rem  【维护须知】start_comfyui.bat 必须是 GBK(936) 编码，中文才不乱码。
+rem   要改内容请改同目录的 start_comfyui.bat.src.txt（UTF-8），
+rem   再运行 start_comfyui.bat.rebuild.py 重新生成；
+rem   直接用编辑器改 .bat 容易把中文编码搞坏。
+rem ================================================================
+
+rem ---- 默认值：外部已设置的不覆盖 ----
+if not defined CONDA_ENV set "CONDA_ENV=comfyui"
+if not defined COMFY_ARGS set "COMFY_ARGS=--listen 0.0.0.0 --lowvram --preview-method auto"
+if not defined HF_ENDPOINT set "HF_ENDPOINT=https://hf-mirror.com"
+
+rem ---- 命令行第一个参数可覆盖环境名 ----
+if not "%~1"=="" set "CONDA_ENV=%~1"
+
+rem ---- ComfyUI 目录 = 本脚本所在目录 ----
+set "COMFY_DIR=%~dp0"
+if "%COMFY_DIR:~-1%"=="\" set "COMFY_DIR=%COMFY_DIR:~0,-1%"
+
+echo ================================================================
+echo   ComfyUI 启动器
+echo   目录 : %COMFY_DIR%
+echo   环境 : %CONDA_ENV%
+echo   参数 : %COMFY_ARGS%
+echo ================================================================
+echo.
+
+if not exist "%COMFY_DIR%\main.py" (
+    echo [错误] 本目录下找不到 main.py，
+    echo        请把本脚本放在 ComfyUI 根目录（与 main.py 同级）。
+    goto :end
+)
+
+rem ================================================================
+rem  1. 定位 conda —— 不写死安装路径，依次尝试三种来源
+rem ================================================================
+set "CONDA_BAT="
+
+rem (1) 当前会话已初始化过 conda（CONDA_EXE 指向 ...\Scripts\conda.exe）
+if not defined CONDA_BAT if defined CONDA_EXE (
+    for %%I in ("%CONDA_EXE%") do set "CONDA_SCRIPTS=%%~dpI"
+    if exist "!CONDA_SCRIPTS!..\condabin\conda.bat" set "CONDA_BAT=!CONDA_SCRIPTS!..\condabin\conda.bat"
+)
+
+rem (2) conda 已在 PATH 中
+if not defined CONDA_BAT for /f "delims=" %%I in ('where conda.bat 2^>nul') do (
+    if not defined CONDA_BAT set "CONDA_BAT=%%I"
+)
+
+rem (3) 扫描常见安装位置（本机 conda 不在 PATH，就靠这一步）
+if not defined CONDA_BAT (
+    for %%R in (
+        "%USERPROFILE%\miniconda3"
+        "%USERPROFILE%\anaconda3"
+        "%USERPROFILE%\Miniconda3"
+        "%USERPROFILE%\Anaconda3"
+        "%LOCALAPPDATA%\miniconda3"
+        "%LOCALAPPDATA%\anaconda3"
+        "%LOCALAPPDATA%\Continuum\anaconda3"
+        "%ProgramData%\miniconda3"
+        "%ProgramData%\Anaconda3"
+        "C:\miniconda3"
+        "C:\Anaconda3"
+    ) do (
+        if not defined CONDA_BAT if exist "%%~R\condabin\conda.bat" set "CONDA_BAT=%%~R\condabin\conda.bat"
+    )
+)
+
+rem ================================================================
+rem  2. 定解释器：conda 环境 > 项目内 venv（都没有就报错，不猜）
+rem ================================================================
+set "PYEXE="
+set "PYSRC="
+
+if defined CONDA_BAT (
+    echo [conda] !CONDA_BAT!
+    call "!CONDA_BAT!" activate "%CONDA_ENV%" 1>nul
+    if errorlevel 1 (
+        echo [警告] 激活 conda 环境 "%CONDA_ENV%" 失败。
+        echo        conda 自己的报错信息可能显示在最后，属正常现象。
+        echo        查看已有环境名： conda env list
+        echo        临时换一个环境： start_comfyui.bat 环境名
+        echo.
+    ) else (
+        set "PYEXE=python"
+        set "PYSRC=conda 环境 %CONDA_ENV%"
+    )
+) else (
+    echo [警告] 系统里没找到 conda，尝试其它解释器...
+    echo.
+)
+
+if not defined PYEXE if exist "%COMFY_DIR%\venv\Scripts\python.exe" (
+    set "PYEXE=%COMFY_DIR%\venv\Scripts\python.exe"
+    set "PYSRC=项目内 venv"
+)
+if not defined PYEXE if exist "%COMFY_DIR%\.venv\Scripts\python.exe" (
+    set "PYEXE=%COMFY_DIR%\.venv\Scripts\python.exe"
+    set "PYSRC=项目内 .venv"
+)
+if not defined PYEXE (
+    echo [错误] 没能确定可用的 ComfyUI 运行环境。
+    echo        上一步的警告说明了原因；不要拿没装依赖的 python 硬跑。
+    echo.
+    echo        查看已有 conda 环境： conda env list
+    echo        指定要用的环境名：   start_comfyui.bat 环境名
+    echo        新机器上还没建过环境：
+    echo          conda create -n comfyui python=3.12
+    echo          pip install -r requirements.txt
+    goto :end
+)
+
+rem ---- 解析出真实解释器路径（conda 激活后 python 只是个命令名）----
+if /i "!PYEXE!"=="python" (
+    for /f "delims=" %%P in ('python -c "import sys;print(sys.executable)" 2^>nul') do set "PYREAL=%%P"
+) else (
+    set "PYREAL=!PYEXE!"
+)
+
+if not defined PYREAL (
+    echo [错误] conda 环境 "%CONDA_ENV%" 里没有可用的 python。
+    echo        请先确认环境已创建： conda env list
+    goto :end
+)
+
+echo [解释器] !PYREAL!
+echo           来源：!PYSRC!
+rem 注意：下面传给 python 的字符串只用 ASCII，中文会因代码页不同而乱码
+"!PYEXE!" -c "import platform;print('  Python '+platform.python_version())"
+"!PYEXE!" -c "import torch;print('  torch  '+torch.__version__+' | cuda '+str(torch.version.cuda)+' | cuda_ok='+str(torch.cuda.is_available()))" 2>nul
+"!PYEXE!" -c "import numpy;print('  numpy  '+numpy.__version__)" 2>nul
+echo.
+
+rem ================================================================
+rem  3. 启动
+rem ================================================================
+rem 取本机 IPv4，用于打印局域网地址（只取第一个，多网卡时以主网卡为准）
+set "LANIP="
+for /f "tokens=2 delims=:" %%a in ('ipconfig ^| findstr /c:"IPv4"') do (
+    if not defined LANIP set "LANIP=%%a"
+)
+if defined LANIP set "LANIP=%LANIP: =%"
+
+echo ================================================================
+echo   本机： http://127.0.0.1:8188
+if defined LANIP echo   局域网： http://%LANIP%:8188   （需带 --listen 才可访问）
+echo   停止： 在本窗口按 Ctrl+C
+echo ================================================================
+echo.
+
+cd /d "%COMFY_DIR%"
+"!PYEXE!" main.py %COMFY_ARGS%
+set "EXITCODE=%ERRORLEVEL%"
+
+echo.
+echo ComfyUI 已退出，返回码 %EXITCODE%。
+
+:end
+echo.
+pause
+endlocal

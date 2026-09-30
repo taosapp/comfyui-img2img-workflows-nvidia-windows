@@ -4,12 +4,21 @@
 
 /*
 !/.gitignore
+!/.gitattributes
 !/README.md
 !/LICENSE
 !/workflows/
 !/styles/
 !/custom_nodes/
 !/patches/
+!/scripts/
+
+# 启动器（.bat 是 GBK 编码，靠 .gitattributes 防止换行符被改写）
+!/start_comfyui.bat
+!/start_comfyui.bat.src.txt
+!/start_comfyui.bat.rebuild.py
+!/start_comfyui.bat.selftest.py
+!/start_comfyui_mac.sh
 
 # custom_nodes 里只保留自建节点包
 /custom_nodes/*
