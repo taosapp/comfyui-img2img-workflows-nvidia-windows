@@ -245,9 +245,99 @@ class StylePromptSave:
         return target
 
 
+class BackgroundFillSmooth:
+    """背景填充节点：把掩膜区（白色=1）用周边像素做结构延续填充。
+
+    算法（三步，无扩散模型，确定性好、速度快）：
+      1. 逐行水平插值 —— 每行洞内像素由左右最近有效像素（各取 6px 均值做锚点）
+         线性过渡；掩膜顶到图像边界的悬空段用最近锚点颜色恒定延伸。
+         对水平条带型背景（天空/地平线/水面/台面）能精确延续结构。
+      2. 轻扩散统一质感 —— 高斯模糊（sigma 12/6/3）+ 已知区回贴，软化插值痕迹。
+      3. 匹配噪点 —— 填充区加轻噪，避免与周边颗粒感脱节。
+
+    典型用途：产品图层拆分里的「背景层」——被产品/文字挡住的区域补全，
+    之后合成回去时中心区会被产品重新盖住，边界延续才是质量关键。
+    """
+
+    @classmethod
+    def INPUT_TYPES(cls):
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "mask": ("MASK",),
+                "grain": ("FLOAT", {"default": 2.2, "min": 0.0, "max": 20.0, "step": 0.1}),
+                "seed": ("INT", {"default": 7, "min": 0, "max": 2**31 - 1}),
+            },
+        }
+
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
+    FUNCTION = "fill"
+    CATEGORY = "image/compositing"
+
+    def fill(self, image, mask, grain, seed):
+        import numpy as np
+        import torch
+        from PIL import Image as PILImage
+
+        img = image[0].cpu().numpy().astype(np.float32) * 255.0     # H,W,C
+        msk = mask[0].cpu().numpy().astype(np.float32)              # H,W（1=填充区）
+        if msk.shape != img.shape[:2]:
+            msk = np.asarray(
+                PILImage.fromarray((msk * 255).astype(np.uint8)).resize((img.shape[1], img.shape[0]))
+            , dtype=np.float32) / 255.0
+        known = msk < 0.1
+        H, W, _ = img.shape
+
+        # 1) 逐行水平插值 + 边界悬空段恒定延伸
+        fill = img.copy()
+        K = 6
+        for y in range(H):
+            row = known[y]
+            if row.all():
+                continue
+            xs = np.where(row)[0]
+            if len(xs) == 0:
+                continue
+            if xs[0] > 0:                       # 左侧顶边：向左延伸右锚点
+                fill[y, :xs[0]] = img[y, xs[:K]].mean(axis=0)
+            if xs[-1] < W - 1:                  # 右侧顶边：向右延伸左锚点
+                fill[y, xs[-1] + 1:] = img[y, xs[-K:]].mean(axis=0)
+            for seg in range(len(xs) - 1):      # 中间跨度线性过渡
+                x0, x1 = xs[seg], xs[seg + 1]
+                if x1 - x0 <= 1:
+                    continue
+                lpx = xs[max(0, seg - K + 1):seg + 1]
+                rpx = xs[seg + 1:seg + K]
+                c0 = img[y, lpx].mean(axis=0)
+                c1 = img[y, rpx].mean(axis=0) if len(rpx) else c0
+                t = np.linspace(0.0, 1.0, x1 - x0 + 1)[:, None]
+                fill[y, x0:x1 + 1] = c0 * (1 - t) + c1 * t
+
+        # 2) 轻扩散（已知区永远回贴原图）
+        work = fill
+        try:
+            from PIL import ImageFilter
+            pil = PILImage.fromarray(np.clip(work, 0, 255).astype(np.uint8))
+            for sigma in (12, 6, 3):
+                b = np.asarray(pil.filter(ImageFilter.GaussianBlur(radius=sigma)), dtype=np.float32)
+                work = np.where(known[..., None], img, b)
+                pil = PILImage.fromarray(np.clip(work, 0, 255).astype(np.uint8))
+        except ImportError:
+            LOG.warning("[style-prompt] BackgroundFillSmooth: 无 PIL，跳过扩散步")
+
+        # 3) 匹配噪点
+        if grain > 0:
+            rng = np.random.default_rng(seed)
+            work = work + rng.normal(0.0, grain, work.shape) * (~known[..., None])
+        work = np.clip(work, 0.0, 255.0) / 255.0
+        return (torch.from_numpy(work).float().unsqueeze(0),)
+
+
 NODE_CLASS_MAPPINGS = {
     "StylePromptSelector": StylePromptSelector,
     "StylePromptSave": StylePromptSave,
+    "BackgroundFillSmooth": BackgroundFillSmooth,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
