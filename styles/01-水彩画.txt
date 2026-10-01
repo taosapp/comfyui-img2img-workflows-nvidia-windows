@@ -1,4 +1,12 @@
-Transform this image into a soft muted watercolor painting style with rich midtones and deep shadows, keeping the main subject and composition
+watercolor painting, luminous translucent washes, bright cheerful palette, high key, airy light, clean white paper showing through, vibrant yet natural colors taken from the original photo, soft wet-on-wet edges, delicate pigment granulation, visible brush strokes, masterpiece, best quality, high resolution
+
+Transform this photo into a bright, airy watercolor painting: keep the original colors, subject and composition exactly the same, but render everything with light translucent pigment and plenty of clean white paper. Use thin light washes instead of heavy shading — let the paper supply the highlights. Keep the overall tone bright, fresh and colorful, never dark, dull or muddy.
+
+# ===== 备用词条：行首带 # 的行会被节点剔除，不会送进模型 =====
+# 想要更「淡彩速写」：# loose sketchy watercolor, minimal washes, lots of white space
+# 想要更「饱和插画」：# vivid gouache-like watercolor, saturated pigment, bold flat washes
+# 想要保留更多原图细节：把工作流 KSampler 的 denoise 从 1.0 降到 0.6~0.75
+# 旧版提示词里的 muted / deep shadows 是偏暗的元凶，已移除，别加回来。
 
 ---负向---
-overexposed, blown out highlights, washed out, faded, high key lighting, low contrast
+dark, gloomy, murky, muddy tones, heavy shadows, deep shadows, underexposed, low key lighting, dull, desaturated, grey, dirty brown, over-darkened, blurry, low quality, text, watermark
